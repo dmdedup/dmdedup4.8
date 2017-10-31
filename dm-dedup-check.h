@@ -1,10 +1,5 @@
 /*
  * Copyright (C) 2012-2017 Vasily Tarasov
- * Copyright (C) 2012-2014 Geoff Kuenning
- * Copyright (C) 2012-2014 Sonam Mandal
- * Copyright (C) 2012-2014 Karthikeyani Palanisami
- * Copyright (C) 2012-2014 Philip Shilane
- * Copyright (C) 2012-2014 Sagar Trehan
  * Copyright (C) 2012-2017 Erez Zadok
  * Copyright (c) 2016-2017 Vinothkumar Raja
  * Copyright (c) 2017-2017 Nidhi Panpalia
