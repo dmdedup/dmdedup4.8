@@ -857,6 +857,9 @@ static int dm_dedup_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	dc->physical_block_counter = physical_block_counter;
 
 	dc->gc_counter = 0;
+	dc->g_counter = 0;
+	dc->garbage_collection = false;
+	dc->stop_garbage_collection = false;
 	dc->writes = 0;
 	dc->dupwrites = 0;
 	dc->uniqwrites = 0;
@@ -1024,6 +1027,9 @@ out:
 static int garbage_collect(struct dedup_config *dc)
 {
 	int err = 0;
+	
+	/* Set garbage collection status flag to true */
+	dc->garbage_collection = true;
 
 	BUG_ON(!dc);
 
@@ -1031,7 +1037,31 @@ static int garbage_collect(struct dedup_config *dc)
 	err = dc->kvs_hash_pbn->kvs_iterate(dc->kvs_hash_pbn,
 			&cleanup_hash_pbn, (void *)dc);
 
+	/* Set garbage collection status flag to false */
+	dc->garbage_collection = false;
+
 	return err;
+}
+
+static int count_block(void *key, int32_t ksize, void *value,
+                            int32_t vsize, void *data)
+{
+        struct dedup_config *dc = (struct dedup_config *)data;
+        dc->g_counter++;
+        return 0;
+}
+
+static int garbage_blocks(struct dedup_config *dc)
+{
+        int err = 0;
+
+        BUG_ON(!dc);
+
+        /* Count if the refcount of block == 1 */
+        err = dc->kvs_hash_pbn->kvs_iterate(dc->kvs_hash_pbn,
+                        &count_block, (void *)dc);
+
+        return err;
 }
 
 static int dm_dedup_message(struct dm_target *ti,
@@ -1042,10 +1072,16 @@ static int dm_dedup_message(struct dm_target *ti,
 	struct dedup_config *dc = ti->private;
 	BUG_ON(!dc);
 
-	if (!strcasecmp(argv[0], "garbage_collect")) {
+	if (!strcasecmp(argv[0], "gc_start")) {
 		r = garbage_collect(dc);
 		if (r < 0)
 			DMERR("Error in performing garbage_collect: %d.", r);
+	} else if (!strcasecmp(argv[0], "gc_stop")) {
+		dc->stop_garbage_collection = true;
+	} else if (!strcasecmp(argv[0], "g_blocks")) {
+		r = garbage_blocks(dc);
+		if (r < 0)
+			DMERR("Error in calculating number of garbage blocks: %d.", r);
 	} else if (!strcasecmp(argv[0], "drop_bufio_cache")) {
 		if (dc->mdops->flush_bufio_cache)
 			dc->mdops->flush_bufio_cache(dc->bmd);
