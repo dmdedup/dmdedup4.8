@@ -1058,18 +1058,26 @@ static int dm_dedup_message(struct dm_target *ti,
 				"1 - Enable corruption check, "
 				"2 - Enable FEC flag  (also enable corruption check if disabled)");
                         r = -EINVAL;
-                } else if (!strcasecmp(argv[1], "1")) {
-                        dc->check_corruption = true;
-                        dc->fec = false;
-                } else if (!strcasecmp(argv[1], "2")) {
-                        dc->check_corruption = true;
-                        dc->fec = true;
-                } else if (!strcasecmp(argv[1], "0")) {
-                        dc->fec = false;
-                        dc->check_corruption = false;
+                } else if(argv[1][1] == '\0'){
+			switch(argv[1][0]) {
+				case '0': 
+                        		dc->check_corruption = true;
+                        		dc->fec = false;
+					break;
+				case '1':
+					dc->check_corruption = true;
+                        		dc->fec = true;
+					break;
+                        	case '2':
+					dc->fec = false;
+                        		dc->check_corruption = false;
+					break;
+				default:
+					r = -EINVAL;
+			}
                 } else {
                         r = -EINVAL;
-                }
+		}
 	} else {
 		r = -EINVAL;
 	}
