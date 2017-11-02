@@ -978,9 +978,9 @@ static void dm_dedup_status(struct dm_target *ti, status_type_t status_type,
 			MAJOR(dc->metadata_dev->bdev->bd_dev),
 			MINOR(dc->metadata_dev->bdev->bd_dev));
 
-		DMEMIT("%llu %llu %llu %llu %llu %llu %llu",
+		DMEMIT("%llu %llu %llu %llu %llu %llu %llu %llu %d",
 		       dc->writes, dc->uniqwrites, dc->dupwrites,
-			dc->reads_on_writes, dc->overwrites, dc->newwrites, dc->gc_counter);
+			dc->reads_on_writes, dc->overwrites, dc->newwrites, dc->g_counter, dc->gc_counter, dc->garbage_collection);
 		break;
 	case STATUSTYPE_TABLE:
 		DMEMIT("%s %s %u %s %s %u",
