@@ -1073,6 +1073,7 @@ static int dm_dedup_message(struct dm_target *ti,
 	BUG_ON(!dc);
 
 	if (!strcasecmp(argv[0], "gc_start")) {
+		dc->stop_garbage_collection = false;
 		r = garbage_collect(dc);
 		if (r < 0)
 			DMERR("Error in performing garbage_collect: %d.", r);
