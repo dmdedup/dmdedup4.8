@@ -94,6 +94,56 @@ allocated, written, and a corresponding hash is added to the index.
 On read, LBN-PBN mapping allows to quickly locate a required block on the data
 device.  If there were no writes to an LBN before, a zero block is returned.
 
+Garbage Collect Module - dm-dedup provides an offline mechanism to free up disk space. 
+PBNs that are referenced only from the hash index will be freed whenever the garbage 
+collection engine is initiated. This module when called will decrement the reference 
+counts of these PBNs to zero allowing it to be garbage collected.
+
+To traverse the HASH-PBNs btree, we use linux kernel's dm_btree_lookup_next. This locks the btree for traversal and hence stops the I/O operation. So we provide users to start and stop the garbage collection process.   
+This module can be called using device mapper's message interface. 
+
+We can start the garbage collection using the follwing command:
+
+	dmsetup message dedup 0 gc_start
+
+We can stop the garbage collection using the following command:
+
+	dmsetup message dedup 0 gc_stop
+
+To get an approximate number if garbage blocks in the device, user can run the following command to get the updated count in device's status:
+	
+	dmsetup message dedup 0 g_blocks
+
+ 
+Corruption Check Module
+-----------------------
+
+In case of unexpected system crash, there is a possiblity of data inconsistency
+between the metadata device and data device. On device reconstruction, we warn the 
+users to run dmdedup corruption check tool if there is a possible inconsistency.
+The corruption check tool also finds data corruptions and reports them.
+
+This module computes the hash of the data being read and fetches its PBN from 
+Hash-PBN mapping. PBN from LBN-PBN entry is compared with the fetched PBN to 
+detect discrepancy. There are 2 possible modes in which this module can work:
+
+1. Corruption Check: When enabled reports only corruption. 
+
+2. Forward Error Correction: In addition to reporting the corruption, this will try to fix the 
+corrpution. 
+
+Following is the message to enable Corruption Check mode:
+
+		dmsetup message dedup 0 corruption 1
+
+Following is the message to enable Corruption Check and Forward Error Correction mode:
+
+		dmsetup message dedup 0 corruption 2
+
+Following is the message to disable both Corruption Check and Forward Error Correction mode:
+
+		dmsetup message dedup 0 corruption 0
+  
 Target Size
 -----------
 
@@ -147,29 +197,30 @@ returned by dmsetup status will contain the following values in the order:
 <name> <start> <end> <type> \
 <dtotal> <dfree> <dused> <dactual> <dblock> <ddisk> <mddisk> \
 <writes><uniqwrites> <dupwrites> <readonwrites> <overwrites> \
-<newwrites> <gccounter>
+<newwrites> <gcounter> <gccounter> <garbagecollection>
 
 <name>, <start>, <end>, and <type> are generic fields printed by dmsetup tool
 for any target.
 
-<dtotal>       - total number of blocks on the data device
-<dfree>        - number of free (unallocated) blocks on the data device
-<dused>        - number of used (allocated) blocks on the data device
-<dactual>      - number of allocated logical blocks (were written at least once)
-<dblock>       - block size in bytes
-<ddisk>        - data disk's major:minor
-<mddisk>       - metadata disk's major:minor
-<writes>       - total number of writes to the target
-<uniqwrites>   - the number of writes that weren't duplicates (were unique)
-<dupwrites>    - the number of writes that were duplicates
-<readonwrites> - the number of times dm-dedup had to read data from the data
-		 device because a write was misaligned (read-on-write effect)
-<overwrites>   - the number of writes to a logical block that was
-		 written before at least once
-<newwrites>    - the number of writes to a logical address that was not written
-		 before even once
-<gccounter>    - total number of blocks garbage collected
-
+<dtotal>		- total number of blocks on the data device
+<dfree>			- number of free (unallocated) blocks on the data device
+<dused>			- number of used (allocated) blocks on the data device
+<dactual>		- number of allocated logical blocks (were written at least once)
+<dblock>		- block size in bytes
+<ddisk>			- data disk's major:minor
+<mddisk>		- metadata disk's major:minor
+<writes>		- total number of writes to the target
+<uniqwrites>		- the number of writes that weren't duplicates (were unique)
+<dupwrites>		- the number of writes that were duplicates
+<readonwrites>		- the number of times dm-dedup had to read data from the data
+		 	  device because a write was misaligned (read-on-write effect)
+<overwrites>		- the number of writes to a logical block that was
+		 	  written before at least once
+<newwrites>		- the number of writes to a logical address that was not written
+		 	  before even once
+<gcounter>		- total number of garbage blocks
+<gccounter>		- total number of blocks garbage collected	
+<garbagecollection>	- status whether garbage collection is currently going on or not
 To compute deduplication ratio one needs to device dactual by dused.
 
 Example
