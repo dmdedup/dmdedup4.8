@@ -68,11 +68,11 @@ struct dedup_config {
 
 	u64 logical_block_counter;	/* Total number of used LBNs */
 	u64 physical_block_counter;/* Total number of allocated PBNs */
-	u64 gc_counter; /*Total number of garbage collected blocks */
-	u64 g_counter; /* Total number of garbage bock */
+	u64 gc_blocks_cleaned; /*Total number of garbage collected blocks */
+	u64 gc_blocks_estimate; /* Total number of garbage blocks */
 
-	bool garbage_collection; /* TO see if garbage collection is on */
-	bool stop_garbage_collection; /* Set when user sends a stop message */
+	bool gc_status; /* TO see if garbage collection is on */
+	bool gc_stop_req; /* Set when user sends a request to stop garbage collection */
 
 	u64	writes;		/* total number of writes */
 	u64	dupwrites;

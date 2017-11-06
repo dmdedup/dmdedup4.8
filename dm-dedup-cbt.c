@@ -830,7 +830,7 @@ static int kvs_iterate_sparse_cowbtree(struct kvstore *kvs,
 	if (r <= 0)
 		goto out;
 
-	while (lowest <= highest && !dedupconfig->stop_garbage_collection ) {
+	while (lowest <= highest && !dedupconfig->gc_stop_req) {
 		/* Get the next entry entry in the kvs store */
 		r = dm_btree_lookup_next(&(kvcbt->info), kvcbt->root,
 					 &lowest, &lowest, (void *)entry);

@@ -856,10 +856,10 @@ static int dm_dedup_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	dc->logical_block_counter = logical_block_counter;
 	dc->physical_block_counter = physical_block_counter;
 
-	dc->gc_counter = 0;
-	dc->g_counter = 0;
-	dc->garbage_collection = false;
-	dc->stop_garbage_collection = false;
+	dc->gc_blocks_cleaned = 0;
+	dc->gc_blocks_estimate = 0;
+	dc->gc_status = false;
+	dc->gc_stop_req = false;
 	dc->writes = 0;
 	dc->dupwrites = 0;
 	dc->uniqwrites = 0;
@@ -980,7 +980,7 @@ static void dm_dedup_status(struct dm_target *ti, status_type_t status_type,
 
 		DMEMIT("%llu %llu %llu %llu %llu %llu %llu %llu %d",
 		       dc->writes, dc->uniqwrites, dc->dupwrites,
-			dc->reads_on_writes, dc->overwrites, dc->newwrites, dc->g_counter, dc->gc_counter, dc->garbage_collection);
+			dc->reads_on_writes, dc->overwrites, dc->newwrites, dc->gc_blocks_estimate, dc->gc_blocks_cleaned, dc->gc_status);
 		break;
 	case STATUSTYPE_TABLE:
 		DMEMIT("%s %s %u %s %s %u",
@@ -989,7 +989,7 @@ static void dm_dedup_status(struct dm_target *ti, status_type_t status_type,
 	}
 }
 
-static int cleanup_hash_pbn(void *key, int32_t ksize, void *value,
+static int gc_process_cleanup_hash_pbn(void *key, int32_t ksize, void *value,
 			    s32 vsize, void *data)
 {
 	int r = 0;
@@ -1011,7 +1011,7 @@ static int cleanup_hash_pbn(void *key, int32_t ksize, void *value,
 			goto out_dec_refcount;
 
 		dc->physical_block_counter -= 1;
-		dc->gc_counter++;
+		dc->gc_blocks_cleaned++;
 	}
 
 	goto out;
@@ -1024,34 +1024,34 @@ out:
 	return r;
 }
 
-static int garbage_collect(struct dedup_config *dc)
+static int gc_process(struct dedup_config *dc)
 {
 	int err = 0;
 	
 	/* Set garbage collection status flag to true */
-	dc->garbage_collection = true;
+	dc->gc_status = true;
 
 	BUG_ON(!dc);
 
 	/* Cleanup hashes if the refcount of block == 1 */
 	err = dc->kvs_hash_pbn->kvs_iterate(dc->kvs_hash_pbn,
-			&cleanup_hash_pbn, (void *)dc);
+			&gc_process_cleanup_hash_pbn, (void *)dc);
 
 	/* Set garbage collection status flag to false */
-	dc->garbage_collection = false;
+	dc->gc_status = false;
 
 	return err;
 }
 
-static int count_block(void *key, int32_t ksize, void *value,
+static int gc_blocks_estimate_count(void *key, int32_t ksize, void *value,
                             int32_t vsize, void *data)
 {
         struct dedup_config *dc = (struct dedup_config *)data;
-        dc->g_counter++;
+        dc->gc_blocks_estimate++;
         return 0;
 }
 
-static int garbage_blocks(struct dedup_config *dc)
+static int gc_blocks_estimate(struct dedup_config *dc)
 {
         int err = 0;
 
@@ -1059,7 +1059,7 @@ static int garbage_blocks(struct dedup_config *dc)
 
         /* Count if the refcount of block == 1 */
         err = dc->kvs_hash_pbn->kvs_iterate(dc->kvs_hash_pbn,
-                        &count_block, (void *)dc);
+                        &gc_blocks_estimate_count, (void *)dc);
 
         return err;
 }
@@ -1073,14 +1073,14 @@ static int dm_dedup_message(struct dm_target *ti,
 	BUG_ON(!dc);
 
 	if (!strcasecmp(argv[0], "gc_start")) {
-		dc->stop_garbage_collection = false;
-		r = garbage_collect(dc);
+		dc->gc_stop_req = false;
+		r = gc_process(dc);
 		if (r < 0)
 			DMERR("Error in performing garbage_collect: %d.", r);
 	} else if (!strcasecmp(argv[0], "gc_stop")) {
-		dc->stop_garbage_collection = true;
-	} else if (!strcasecmp(argv[0], "g_blocks")) {
-		r = garbage_blocks(dc);
+		dc->gc_stop_req = true;
+	} else if (!strcasecmp(argv[0], "gc_blocks_estimate")) {
+		r = gc_blocks_estimate(dc);
 		if (r < 0)
 			DMERR("Error in calculating number of garbage blocks: %d.", r);
 	} else if (!strcasecmp(argv[0], "drop_bufio_cache")) {
