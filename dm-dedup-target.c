@@ -934,9 +934,10 @@ static void dm_dedup_dtr(struct dm_target *ti)
 
 	flush_workqueue(dc->workqueue);
 	destroy_workqueue(dc->workqueue);
-
+	
 	mempool_destroy(dc->dedup_work_pool);
-
+	mempool_destroy(dc->check_work_pool);
+	
 	dc->mdops->exit_meta(dc->bmd);
 
 	dm_io_client_destroy(dc->io_client);
