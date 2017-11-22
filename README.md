@@ -112,7 +112,7 @@ We can stop the garbage collection using the following command:
 
 To get an approximate number if garbage blocks in the device, user can run the following command to get the updated count in device's status:
 	
-	dmsetup message dedup 0 g_blocks
+	dmsetup message dedup 0 gc_blocks_estimate
 
  
 Corruption Check Module
@@ -197,7 +197,7 @@ returned by dmsetup status will contain the following values in the order:
 <name> <start> <end> <type> \
 <dtotal> <dfree> <dused> <dactual> <dblock> <ddisk> <mddisk> \
 <writes><uniqwrites> <dupwrites> <readonwrites> <overwrites> \
-<newwrites> <gcounter> <gccounter> <garbagecollection>
+<newwrites> <gcblocksestimate> <gcblockscleaned> <gcstatus>
 
 <name>, <start>, <end>, and <type> are generic fields printed by dmsetup tool
 for any target.
@@ -218,9 +218,9 @@ for any target.
 		 	  written before at least once
 <newwrites>		- the number of writes to a logical address that was not written
 		 	  before even once
-<gcounter>		- total number of garbage blocks
-<gccounter>		- total number of blocks garbage collected	
-<garbagecollection>	- status whether garbage collection is currently going on or not
+<gcblocksestimate>	- total number of garbage blocks
+<gcblockscleaned>	- total number of blocks garbage collected	
+<gcstatus>		- status whether garbage collection is currently going on or not
 To compute deduplication ratio one needs to device dactual by dused.
 
 Example
@@ -254,5 +254,4 @@ Erez Zadok.
 
 We also acknowledge the help of several students involved in the
 deduplication project: Teo Asinari, Deepak Jain, Mandar Joshi, Atul
-Karmarkar, Meg O'Keefe, Gary Lent, Amar Mudrankit, Ujwala Tulshigiri, and
-Nabil Zaman.
+Karmarkar, Meg O'Keefe, Gary Lent, Amar Mudrankit, Ujwala Tulshigiri, Nabil Zaman, Vinothkumar Raja and Nidhi Panpalia.
