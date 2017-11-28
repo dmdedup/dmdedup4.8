@@ -162,7 +162,7 @@ static int allocate_block(struct dedup_config *dc, uint64_t *pbn_new)
 
 	r = dc->mdops->alloc_data_block(dc->bmd, pbn_new);
 
-	if (!r) {
+	if (r == 0) {
 		dc->logical_block_counter++;
 		dc->physical_block_counter++;
 	}
