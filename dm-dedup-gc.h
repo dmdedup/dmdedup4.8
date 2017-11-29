@@ -11,7 +11,16 @@
 #ifndef DM_DEDUP_GC_H
 #define DM_DEDUP_GC_H
 
-extern int gc_process(struct dedup_config *dc);
+/*
+ *  * gc_work struct is used to initialize a dedicated
+ *   * workqueue only for doing garbage collection
+ *    */
+struct gc_work {
+        struct work_struct worker;
+        struct dedup_config *dc;
+};
+
+extern void dedup_defer_gc(struct dedup_config *dc);
 extern int gc_blocks_estimate(struct dedup_config *dc);
 
 #endif /* DM_DEDUP_GC_H */

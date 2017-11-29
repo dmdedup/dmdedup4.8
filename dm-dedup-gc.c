@@ -49,7 +49,7 @@ out:
 	return r;
 }
 
-int gc_process(struct dedup_config *dc)
+static int gc_process(struct dedup_config *dc)
 {
 	int err = 0;
 	
@@ -66,6 +66,36 @@ int gc_process(struct dedup_config *dc)
 	dc->gc_status = false;
 
 	return err;
+}
+
+static void issue_work_gc(struct work_struct *ws)
+{
+        struct gc_work *data = container_of(ws, struct gc_work, worker);
+        struct dedup_config *dc = (struct dedup_config *)data->dc;
+
+        mempool_free(data, dc->gc_work_pool);
+
+        gc_process(dc);
+}
+
+void dedup_defer_gc(struct dedup_config *dc)
+{
+        struct gc_work *data;
+
+        data = mempool_alloc(dc->gc_work_pool, GFP_NOIO);
+        if (!data) {
+                /* XXX: Decide whether to pass error 
+ *  		 * or silently pass if unable to perform
+ *  		  		 * garbage collection 
+ *  		  		  		 */ 	
+                return;
+        }
+
+        data->dc = dc;
+
+        INIT_WORK(&(data->worker), issue_work_gc);
+
+        queue_work(dc->workqueue, &(data->worker));
 }
 
 static int gc_blocks_estimate_count(void *key, int32_t ksize, void *value,
