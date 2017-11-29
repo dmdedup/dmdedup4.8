@@ -1001,9 +1001,7 @@ static int dm_dedup_message(struct dm_target *ti,
 
 	if (!strcasecmp(argv[0], "gc_start")) {
 		dc->gc_stop_req = false;
-		r = gc_process(dc);
-		if (r < 0)
-			DMERR("Error in performing garbage_collect: %d.", r);
+		dedup_defer_gc(dc);
 	} else if (!strcasecmp(argv[0], "gc_stop")) {
 		dc->gc_stop_req = true;
 	} else if (!strcasecmp(argv[0], "gc_blocks_estimate")) {
