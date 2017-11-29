@@ -105,6 +105,7 @@ struct dedup_config {
 
 	mempool_t *dedup_work_pool;	/* Dedup work pool */
 	mempool_t *check_work_pool;	/* Corruption check work pool */
+	mempool_t *gc_work_pool;	/* Garbage Collection work pool */
 };
 
 /* Value of the HASH-PBN key-value store */
