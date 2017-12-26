@@ -243,6 +243,9 @@ bad_locked:
 	return r;
 }
 
+/*
+ * We acknowledge dm-thin for this method. 
+ */
 static int superblock_all_zeroes(struct dm_block_manager *bm, bool *result)
 {
 	int r;
